@@ -736,8 +736,13 @@ print(list1)
 k.quicksort(0,9,list1)
 print(list1)
 #----------------------------------------#
+<<<<<<< HEAD
 ab = { 'raj':'drg@mail.com',
      'krishna':'dk@gmail.com'}
+=======
+ab = { 'raj':'drajeshgandhi@gmail.com',
+     'krishna':'dkrishna@gmail.com'}
+>>>>>>> 7c649f5589b95214497ab5eff9ce3050968e576c
 for i, v in ab.items():
     print (i, "-->", v)
 #----------------------------------------#
