@@ -736,8 +736,8 @@ print(list1)
 k.quicksort(0,9,list1)
 print(list1)
 #----------------------------------------#
-ab = { 'raj':'drajeshgandhi@gmail.com',
-     'krishna':'dkrishna@gmail.com'}
+ab = { 'raj':'drg@mail.com',
+     'krishna':'dk@gmail.com'}
 for i, v in ab.items():
     print (i, "-->", v)
 #----------------------------------------#
