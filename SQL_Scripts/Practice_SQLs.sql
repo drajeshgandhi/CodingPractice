@@ -1,6 +1,8 @@
 /*--------------------------------------------------------------------------*/
-/*https://techtfq.com/blog/learn-how-to-write-sql-queries-practice-complex-sql-queries*/
-/*https://www.youtube.com/watch?v=FNYdBLwZ6cE&t=142s*/
+/* Some of the sql practice queries that i have done                        */
+/* Various concepts like window functions, recursive queries, sub queries,  */
+/* pivoting data, deleting duplicates, finding nth max sal, etc             */
+/*--------------------------------------------------------------------------*/
 create table temp_user (euser_id int primary key, euser_name varchar(30), email varchar(50) );
 
 insert into temp_user values(5, 'Robin','Robin@gmail.com');
