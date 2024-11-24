@@ -365,14 +365,390 @@ COPY INTO OUR_FIRST_DB.PUBLIC.ORDERS_EX
 DESC STAGE MANAGE_DB.external_stages.aws_stage_errorex;
 
 /*----------------------------------------------------------------------------------*/
+//1. Create a stage & file format object
+//The data is available under: s3://snowflake-assignments-mc/fileformat/
+//Data type: CSV - delimited by '|' (pipe)
+//Header is in the first line.
+
+
+CREATE OR REPLACE TABLE CUSTOMERS (
+ID INT,
+first_name varchar,
+last_name varchar,
+email varchar,
+age int,
+city varchar);
+
+
+create or replace file format OUR_FIRST_DB.PUBLIC.MY_FILE_FORMAT
+TYPE = csv field_delimiter = '|' skip_header= 1;
+
+create or replace stage OUR_FIRST_DB.PUBLIC.CSV_STAGE
+URL = 's3://snowflake-assignments-mc/fileformat/'
+file_format = OUR_FIRST_DB.PUBLIC.MY_FILE_FORMAT;
+
+COPY INTO CUSTOMERS FROM (
+select * from @OUR_FIRST_DB.PUBLIC.CSV_STAGE);
 /*----------------------------------------------------------------------------------*/
+//1. Create a table called employees with the following columns and data types:
+
+  create or replace table employees (customer_id int,
+  first_name varchar(50),
+  last_name varchar(50),
+  email varchar(50),
+  age int,
+  department varchar(50));
+
+//2. Create a file format object with the specification
+//TYPE = CSV FIELD_DELIMITER=',' SKIP_HEADER=1;
+
+create or replace file format OUR_FIRST_DB.PUBLIC.my_example_ff
+TYPE = CSV FIELD_DELIMITER=',' SKIP_HEADER=1;
+
+//3. Create a stage object pointing to 's3://snowflake-assignments-mc/copyoptions/example1'
+
+create or replace stage OUR_FIRST_DB.PUBLIC.my_examples_stage
+url = 's3://snowflake-assignments-mc/copyoptions/example1'
+FILE_FORMAT = OUR_FIRST_DB.PUBLIC.MY_EXAMPLE_FF;
+
+LIST @OUR_FIRST_DB.PUBLIC.my_examples_stage;
+
+
+//4. Use the copy option to only validate if there are errors and if yes what errors.
+COPY INTO employees FROM 
+@OUR_FIRST_DB.PUBLIC.my_examples_stage
+VALIDATION_MODE = RETURN_ERRORS;
+
+COPY INTO employees FROM 
+@OUR_FIRST_DB.PUBLIC.my_examples_stage
+VALIDATION_MODE = RETURN_5_ROWS;
+
+
+//5. Load the data anyways regardless of the error using the ON_ERROR option. How many rows //have been loaded?
+COPY INTO employees FROM 
+@OUR_FIRST_DB.PUBLIC.my_examples_stage
+ON_ERROR = continue; 
 /*----------------------------------------------------------------------------------*/
+//1. Create a table called employees with the following columns and data types:
+
+create or replace table employees (customer_id int,
+first_name varchar(50),
+last_name varchar(50),
+email varchar(50),
+age int,
+department varchar(50));
+
+//3. Create a file format object with the specification
+
+create or replace FILE FORMAT OUR_FIRST_DB.PUBLIC.MY_EXAMPLE_FF 
+TYPE=CSV,  FIELD_DELIMITER=',', SKIP_HEADER=1;
+
+
+//2. Create a stage object pointing to's3://snowflake-assignments-mc/copyoptions/example2'
+
+CREATE OR REPLACE STAGE OUR_FIRST_DB.PUBLIC.MY_EXAMPLES_STAGE
+URL = 's3://snowflake-assignments-mc/copyoptions/example2'
+FILE_FORMAT = OUR_FIRST_DB.PUBLIC.MY_EXAMPLE_FF;
+
+
+
+
+//4. Use the copy option to only validate if there are errors and if yes what errors.
+
+COPY INTO EMPLOYEES FROM 
+@OUR_FIRST_DB.PUBLIC.MY_EXAMPLES_STAGE
+VALIDATION_MODE = RETURN_ERRORS;
+
+//5. One value in the first_name column has more than 50 characters. We assume the table //column properties could not be changed.
+//What option could you use to load that record anyways and just truncate the value after 50 //characters?
+//Load the data in the table using that option.
+
+COPY INTO EMPLOYEES FROM 
+@OUR_FIRST_DB.PUBLIC.MY_EXAMPLES_STAGE
+TRUNCATECOLUMNS = true;
+
+//Questions for this assignment
+//How many rows have been loaded?
+62
+
 /*----------------------------------------------------------------------------------*/
+//If you have not created the database EXERCISE_DB then you can do so - otherwise use this //database for this exercise.
+
+//2. Create a file format object that is using TYPE = JSON
+create or replace file format OUR_FIRST_DB.PUBLIC.MY_JSON_FF
+TYPE = JSON;
+
+//1. Create a stage object that is pointing to 's3://snowflake-assignments-mc/unstructureddata/'
+CREATE OR REPLACE STAGE OUR_FIRST_DB.PUBLIC.AWS_STAGE
+url = 's3://snowflake-assignments-mc/unstructureddata/'
+File_Format = OUR_FIRST_DB.PUBLIC.MY_JSON_FF;
+
+//3. Create a table called JSON_RAW with one column
+
+CREATE OR REPLACE TABLE JSON_RAW (
+Raw Variant);
+
+//4. Copy the raw data in the JSON_RAW table using the file format object and stage object
+
+COPY INTO  JSON_RAW FROM @OUR_FIRST_DB.PUBLIC.AWS_STAGE;
+
+//Questions for this assignment
+What is the last name of the person in the first row (id=1)?
+
+select * from JSON_RAW;
+
 /*----------------------------------------------------------------------------------*/
+//If you have not created the database EXERCISE_DB then you can do so - otherwise use this database for this exercise.
+
+//1. Query from the previously created JSON_RAW  table.
+
+//Note: This table was created in the previous assignment (assignment 7) where you had to create a stage object that is pointing to 's3://snowflake-assignments-mc/unstructureddata/'. We have called the table JSON_RAW.
+
+//2. Select the attributes first_name last_name skills and query these columns.
+select * from JSON_RAW;
+
+select RAW:first_name::string, RAW:last_name::string, Raw:Skills from JSON_RAW;
+--here field names are case sensitive
+
+
+//2. The skills column contains an array. Query the first two values in the skills attribute for every record in a separate column:
+
+first_name
+last_name
+skills_1
+skills_2
+
+select RAW:first_name::string, RAW:last_name::string, Raw:Skills[0]::string,Raw:Skills[1]::string  from JSON_RAW;
+
+//3. Create a table and insert the data for these 4 columns in that table.
+
+//Questions for this assignment
+//What is the first skill of the person with first_name 'Florina'?
+select RAW:first_name::string, RAW:last_name::string, Raw:Skills[0]::string,Raw:Skills[1]::string  from JSON_RAW
+where RAW:first_name::string = 'Florina';
+
+create or replace table skills(name string, department string, skills string);
+drop table skills;
+//insert into languages 
+select RAW:first_name as name,
+RAW:department,
+f.value:Skills[0] as skills
+from JSON_RAW, table(flatten(RAW:Skills)) f;
+
+
 /*----------------------------------------------------------------------------------*/
+Create exercise table
+
+-- Switch to role of accountadmin --
+ 
+USE ROLE ACCOUNTDMIN;
+USE DATABASE DEMO_DB;
+USE WAREHOUSE COMPUTE_WH;
+ 
+CREATE OR REPLACE TABLE OUR_FIRST_DB.PUBLIC.PART
+AS
+SELECT * FROM "SNOWFLAKE_SAMPLE_DATA"."TPCH_SF1"."PART";
+ 
+SELECT * FROM PART
+ORDER BY P_MFGR DESC;
+
+
+2. Update the table
+
+UPDATE OUR_FIRST_DB.PUBLIC.PART
+SET P_MFGR='Manufacturer#CompanyX'
+WHERE P_MFGR='Manufacturer#5';
+
+--01b5e97d-0002-ad64-0074-30870002900e
+ 
+----> Note down query id here:
+ 
+SELECT * FROM PART
+ORDER BY P_MFGR DESC;
+
+
+3.1: Travel back using the offset until you get the result of before the update
+
+SELECT * FROM OUR_FIRST_DB.public.PART at (OFFSET => -60*2);
+
+3.2: Travel back using the query id to get the result before the update
+
+SELECT * FROM OUR_FIRST_DB.public.PART before (statement => '01b5e97d-0002-ad64-0074-30870002900e');
+
 /*----------------------------------------------------------------------------------*/
+//1. Create exercise table
+
+-- Switch to role of accountadmin --
+ 
+USE ROLE ACCOUNTDMIN;
+USE DATABASE DEMO_DB;
+USE WAREHOUSE COMPUTE_WH;
+ 
+CREATE OR REPLACE TABLE OUR_FIRST_DB.PUBLIC.SUPPLIER
+AS
+SELECT * FROM "SNOWFLAKE_SAMPLE_DATA"."TPCH_SF1"."SUPPLIER";
+
+
+//2. Create a clone of that table called SUPPLIER_CLONE
+
+CREATE OR REPLACE TABLE OUR_FIRST_DB.PUBLIC.SUPPLIER_CLONE
+CLONE OUR_FIRST_DB.PUBLIC.SUPPLIER;
+
+//3. Update the clone table and copy the query id
+
+
+UPDATE OUR_FIRST_DB.PUBLIC.SUPPLIER_CLONE
+SET S_PHONE='###';
+//01b5ef26-0002-ad62-0074-30870002d02e
+ 
+--> Query ID:
+
+4. Create another clone from the updated clone using the time travel feature to clone before the update has been executed.
+
+CREATE OR REPLACE TABLE OUR_FIRST_DB.PUBLIC.SUPPLIER_CLONE_2
+CLONE OUR_FIRST_DB.PUBLIC.SUPPLIER_CLONE before (statement => '01b5ef26-0002-ad62-0074-30870002d02e');
+
+Questions for this assignment
+If we delete the source table, does the clone still exist?
+delete from OUR_FIRST_DB.PUBLIC.SUPPLIER;
+
+select * from OUR_FIRST_DB.PUBLIC.SUPPLIER_CLONE
+
+--------------------------------------------
+
+1. Sample 5% from the table "SNOWFLAKE_SAMPLE_DATA"."TPCDS_SF10TCL"."CUSTOMER_ADDRESS"
+Use the ROW method and seed(2) to get a reproducible result.
+Store the result in the DEMO_DB in a table called CUSTOMER_ADDRESS_SAMPLE_5.
+
+select * from "SNOWFLAKE_SAMPLE_DATA"."TPCDS_SF10TCL"."CUSTOMER_ADDRESS"
+sample row(5) seed(2);
+
+
+2. Sample 1% from the table "SNOWFLAKE_SAMPLE_DATA"."TPCDS_SF10TCL"."CUSTOMER"
+
+Use the SYSTEM method and seed(2) to get a reproducible result.
+Store the result in the DEMO_DB in a table called CUSTOMER_SAMPLE_1.
+
+select * from "SNOWFLAKE_SAMPLE_DATA"."TPCDS_SF10TCL"."CUSTOMER"
+SAMPLE SYSTEM(1) seed(2);
+
+Questions for this assignment
+How many rows are in the second created table CUSTOMER_SAMPLE_1?
+--241.9K
+
 /*----------------------------------------------------------------------------------*/
+//create a materialized view called PARTS in the database DEMO_DB from the following statement:
+
+create or replace materialized view OUR_FIRST_DB.PUBLIC.PARTS_MV AS 
+SELECT 
+AVG(PS_SUPPLYCOST) as PS_SUPPLYCOST_AVG,
+AVG(PS_AVAILQTY) as PS_AVAILQTY_AVG,
+MAX(PS_COMMENT) as PS_COMMENT_MAX
+FROM"SNOWFLAKE_SAMPLE_DATA"."TPCH_SF100"."PARTSUPP";
+--Execute the SELECT before creating the materialized view and note down the time until the --query is executed.
+
+select * from OUR_FIRST_DB.PUBLIC.PARTS_MV;
+
+Questions for this assignment
+How long did the SELECT statement take initially?
+--5.5sec 
+
+How long did the execution of the materialized view take?
+--488ms 
+
 /*----------------------------------------------------------------------------------*/
+1. Prepare the table and two roles to test the masking policies (you can use the statement below)
+
+USE OUR_FIRST_DB;
+USE ROLE ACCOUNTADMIN;
+ 
+-- Prepare table --
+create or replace table customers(
+  id number,
+  full_name varchar, 
+  email varchar,
+  phone varchar,
+  spent number,
+  create_date DATE DEFAULT CURRENT_DATE);
+ 
+ 
+-- insert values in table --
+insert into customers (id, full_name, email,phone,spent)
+values
+  (1,'Lewiss MacDwyer','lmacdwyer0@un.org','262-665-9168',140),
+  (2,'Ty Pettingall','tpettingall1@mayoclinic.com','734-987-7120',254),
+  (3,'Marlee Spadazzi','mspadazzi2@txnews.com','867-946-3659',120),
+  (4,'Heywood Tearney','htearney3@patch.com','563-853-8192',1230),
+  (5,'Odilia Seti','oseti4@globo.com','730-451-8637',143),
+  (6,'Meggie Washtell','mwashtell5@rediff.com','568-896-6138',600);
+ 
+ 
+-- set up roles
+CREATE OR REPLACE ROLE ANALYST_MASKED;
+CREATE OR REPLACE ROLE ANALYST_FULL;
+ 
+-- grant select on table to roles
+GRANT SELECT ON TABLE OUR_FIRST_DB.PUBLIC.CUSTOMERS TO ROLE ANALYST_MASKED;
+GRANT SELECT ON TABLE OUR_FIRST_DB.PUBLIC.CUSTOMERS TO ROLE ANALYST_FULL;
+ 
+GRANT USAGE ON SCHEMA OUR_FIRST_DB.PUBLIC TO ROLE ANALYST_MASKED;
+GRANT USAGE ON SCHEMA OUR_FIRST_DB.PUBLIC TO ROLE ANALYST_FULL;
+ 
+-- grant warehouse access to roles
+GRANT USAGE ON WAREHOUSE COMPUTE_WH TO ROLE ANALYST_MASKED;
+GRANT USAGE ON WAREHOUSE COMPUTE_WH TO ROLE ANALYST_FULL;
+ 
+-- assign roles to a user
+GRANT ROLE ANALYST_MASKED TO USER DRAJESHGANDHI;
+GRANT ROLE ANALYST_FULL TO USER DRAJESHGANDHI;
+
+
+2. Create masking policy called name that is showing '***' instead of the original varchar value except the role analyst_full is used in this case show the original value.
+
+create or replace masking policy name 
+    as (val varchar) returns varchar ->
+            case        
+            when current_role() in ('ANALYST_FULL') then val
+            else '***'
+            end;
+
+3. Apply the masking policy on the column full_name
+alter table customers modify column full_name
+set masking policy name;
+
+
+4. Unset the policy
+
+alter table customers modify column full_name
+unset masking policy;
+
+5. Validate the result using the role analyst_masked and analyst_full
+use role analyst_masked;
+use role accountadmin;
+
+select * from OUR_FIRST_DB.PUBLIC.CUSTOMERS;
+
+6. Alter the policy so that the last two characters are shown and before that only '***' (example: ***er)
+
+user role accountadmin;
+
+alter masking policy name set body -> 
+            case        
+            when current_role() in ('ANALYST_FULL') then val
+            else (CONCAT('***', SUBSTRING(RIGHT(val, 2), 1, 1), 
+SUBSTRING(RIGHT(val, 2), 2, 1)))
+            end;
+            
+7. Apply the policy again on the column full name and validate the policy
+
+alter table customers modify column full_name
+set masking policy name;
+
+select * from OUR_FIRST_DB.PUBLIC.CUSTOMERS;
+
+alter table customers modify column full_name
+unset masking policy;
+
 /*----------------------------------------------------------------------------------*/
 /*----------------------------------------------------------------------------------*/
 /*----------------------------------------------------------------------------------*/
